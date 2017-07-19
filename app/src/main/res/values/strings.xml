@@ -1,0 +1,112 @@
+<resources>
+    <string name="app_name">InventoryApp</string>
+
+    <!-- Title text for the empty view, which describes the empty store image [CHAR LIMIT=50] -->
+    <string name="empty_view_title_text">Store Inventory is empty...</string>
+    <string name="empty_store_subtitle_text">Get started by adding a new product!</string>
+    <string name="error_delete_all_entries">Error in deleting all entries</string>
+    <string name="confirm_delete_all_entries">All products successfully deleted</string>
+    <string name="display_product_price">£</string>
+    <string name="display_product_quantity">Quantity:</string>
+    <string name="display_product_sale_price">Sale:</string>
+    <string name="error_quantity_update">Failed to reduce product quantity</string>
+
+    <!-- Label for overflow menu option that inserts fake pet data into the app [CHAR LIMIT=20] -->
+    <string name="action_insert_dummy_data">Insert Dummy Data</string>
+
+    <!-- Label for overflow menu option that deletes all pet data in the app [CHAR LIMIT=20] -->
+    <string name="action_delete_all_entries">Delete All Pets</string>
+
+    <!-- Subtitle text for the empty view that prompts the user to add a pet [CHAR LIMIT=50] -->
+    <string name="empty_view_subtitle_text">Get started by adding a pet</string>
+
+    <!-- Title for the activity to add a new pet [CHAR LIMIT=20] -->
+    <string name="editor_activity_title_new_product">Add a Product</string>
+
+    <!-- Title for the activity to edit an existing pet [CHAR LIMIT=20] -->
+    <string name="editor_activity_title_edit_product">Edit Product</string>
+
+    <!-- Label for editor menu option to save pet and leave editor [CHAR LIMIT=20] -->
+    <string name="action_save">Save</string>
+
+    <!-- Label for editor overflow menu option that deletes the current pet [CHAR LIMIT=20] -->
+    <string name="action_delete">Delete</string>
+
+    <!-- Toast message in editor when new pet has been successfully inserted [CHAR LIMIT=NONE] -->
+    <string name="editor_insert_pet_successful">Pet saved</string>
+
+    <!-- Toast message in editor when new pet has failed to be inserted [CHAR LIMIT=NONE] -->
+    <string name="editor_insert_pet_failed">Error with saving pet</string>
+
+    <!-- Toast message in editor when current pet was successfully updated [CHAR LIMIT=NONE] -->
+    <string name="editor_update_pet_successful">Pet updated</string>
+
+    <!-- Toast message in editor when current pet has failed to be updated [CHAR LIMIT=NONE] -->
+    <string name="editor_update_pet_failed">Error with updating pet</string>
+
+    <!-- Dialog message when user is leaving editor but hasn't saved changes [CHAR LIMIT=NONE] -->
+    <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
+
+    <!-- Dialog button text for the option to discard a user's changes [CHAR LIMIT=20] -->
+    <string name="discard">Discard</string>
+
+    <!-- Dialog button text for the option to keep editing the current pet [CHAR LIMIT=20] -->
+    <string name="keep_editing">Keep Editing</string>
+
+    <!-- Toast message in editor when current pet was successfully deleted [CHAR LIMIT=NONE] -->
+    <string name="editor_delete_pet_successful">Pet deleted</string>
+
+    <!-- Toast message in editor when current pet has failed to be deleted [CHAR LIMIT=NONE] -->
+    <string name="editor_delete_pet_failed">Error with deleting pet</string>
+
+    <!-- Dialog message to ask the user to confirm deleting the current pet [CHAR LIMIT=NONE] -->
+    <string name="delete_dialog_msg">Delete this pet?</string>
+
+    <!-- Dialog button text for the option to confirm deleting the current pet [CHAR LIMIT=20] -->
+    <string name="delete">Delete</string>
+
+    <!-- Dialog button text for the option to cancel deletion of the current pet [CHAR LIMIT=20] -->
+    <string name="cancel">Cancel</string>
+
+    <!-- Label for overview category of attributes in the editor [CHAR LIMIT=30] -->
+    <string name="category_overview">Overview</string>
+
+    <!-- Label for gender information in the editor [CHAR LIMIT=30] -->
+    <string name="category_gender">Gender</string>
+
+    <!-- Label for measurement information in the editor [CHAR LIMIT=30] -->
+    <string name="category_measurement">Measurement</string>
+
+    <string name="exception_image_load_failed">Failed to load image</string>
+    <string name="confirm_insert_successful">Product record inserted successfully</string>
+    <string name="confirm_delete_successful">Product record deleted successfully</string>
+    <string name="confirm_update_successful">Product record updated successfully</string>
+    <string name="error_empty_product">Did you forget to enter a product name?</string>
+    <string name="error_empty_price">Did you forget to enter a price for the product?</string>
+    <string name="error_empty_discount">You must enter a Sale Price if On-Offer is checked</string>
+    <string name="error_discount_compare_price">Sale Price cannot be greater than or same as original price</string>
+    <string name="error_empty_stock">Did you forget to enter product stock?</string>
+    <string name="error_empty_supplier">Supplier Name cannot be empty</string>
+    <string name="error_invalid_email">Supplier Email is either empty or invalid</string>
+    <string name="error_offer_not_checked">On-Offer needs to be checked as the product is on sale</string>
+    <string name="error_no_image">You must add an image for the product</string>
+    <string name="error_insert">Failed to insert the record => %s</string>
+    <string name="error_stock_update">Failed to reduce product stock</string>
+    <string name="error_delete_failed">Failed to delete the product</string>
+    <string name="error_insert_failed">Product record could not be saved</string>
+    <string name="error_update_failed">Product record could not be updated</string>
+    <string name="error_update_failed1">Product record could not be updated</string>
+    <string name="action_select_picture">Select picture</string>
+    <string name="detail_quantity_negative">Quantity cannot go below zero</string>
+    <string name="new_product_fail_message">Failed to insert product</string>
+    <string name="new_product_success_message">Product inserted successfully</string>
+    <string name="update_product_fail_message">Failed to update product</string>
+    <string name="update_product_success_message">Product updated successfully</string>
+    <string name="editor_delete_product_failed">Failed to delete product</string>
+    <string name="editor_delete_product_successful">Product deleted successfully</string>
+    <string name="toast_product_out_stock">Product out of stock</string>
+    <string name="email_message">Hi, we would like to request a shipment of the following product:</string>
+    <string name="email_subject">Order request from Product world</string>
+
+
+</resources>
