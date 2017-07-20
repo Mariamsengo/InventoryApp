@@ -1,6 +1,6 @@
 package com.example.android.inventoryapp;
 
-import android.app.Activity;
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.content.ContentValues;
@@ -8,28 +8,42 @@ import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NavUtils;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.android.inventoryapp.data.ProductContract;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Created by MariamNKinene on 16/07/2017.
@@ -43,7 +57,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     //Content URI for existing product (and if null it's a new product)
     private Uri mCurrentProductUri;
-
+    private Uri mImageUri;
 
     // Edit TextVIEWS
     private EditText mEditTextProductName;
@@ -52,15 +66,23 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     private EditText mEditTextSupplierName;
     private EditText mEditTextSupplierEmail;
 
-    // Field to add image
-    private ImageView mImageProduct;
 
     // Buttons
     private Button mPlusButton;
     private Button mMinusButton;
     private Button mOrderButton;
 
+    private static final int REQUEST_CODE = 1;
+    private static final int MY_PERMISSIONS_REQUEST = 2;
+    private Bitmap bitmap;
+    private ImageView mImageProduct;
+    private ImageButton btnCaptureImage;
 
+    private static final String JPEG_FILE_PREFIX = "IMG_";
+    private static final String JPEG_FILE_SUFFIX = ".jpg";
+    private static final String CAMERA_DIR = "/dcim/";
+
+    private static final String FILE_PROVIDER_AUTHORITY = "com.example.android.myfileprovider";
 
     // Boolean flag that keeps track of whether the product has been edited (true) or not (false)
     private boolean mProductHasChanged = false;
@@ -80,6 +102,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_editor);
 
+        mImageProduct = (ImageView) findViewById(R.id.image_product);
+        btnCaptureImage = (ImageButton) findViewById(R.id.camerabutton);
 
         // Examine the intent that was used to launch this activity,
         // in order to figure out if adding a new product or editing an existing one.
@@ -131,12 +155,10 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             public void onClick(View v) {
                 //Get text for product name and price to put in email
                 String nameEmail = mEditTextProductName.getText().toString().trim();
-                String priceEmail = mEditTextProductPrice.getText().toString().trim();
 
                 //Create email message
                 String message = getString(R.string.email_message) +
-                        "\n" + nameEmail +
-                        " - " + priceEmail;
+                        "\n" + nameEmail;
 
                 //Send intent
                 Intent intent = new Intent(Intent.ACTION_SENDTO);
@@ -149,6 +171,41 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                     startActivity(intent);
                 }
             }
+        });
+        // Capture image button click event
+        btnCaptureImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // capture picture
+                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                try {
+                    File f = createImageFile();
+
+                    Log.d(LOG_TAG, "File: " + f.getAbsolutePath());
+
+                    mImageUri = FileProvider.getUriForFile(
+                            EditorActivity.this, FILE_PROVIDER_AUTHORITY, f);
+
+                    cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
+
+                    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
+                        List<ResolveInfo> resInfoList = getPackageManager().queryIntentActivities(cameraIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                        for (ResolveInfo resolveInfo : resInfoList) {
+                            String packageName = resolveInfo.activityInfo.packageName;
+                            grantUriPermission(packageName, mImageUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        }
+                    }
+
+                    if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+                        startActivityForResult(cameraIntent, REQUEST_CODE);
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
         });
 
     }
@@ -175,6 +232,10 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mPlusButton = (Button) findViewById(R.id.detail_plus_button);
         mMinusButton = (Button) findViewById(R.id.detail_minus_button);
         mOrderButton = (Button) findViewById(R.id.button_order_more);
+        btnCaptureImage = (ImageButton) findViewById(R.id.camerabutton);
+        btnCaptureImage.setEnabled(false);
+
+        requestPermissions();
 
         // Setup OnTouchListeners
         mEditTextProductName.setOnTouchListener(mTouchListener);
@@ -183,91 +244,141 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mEditTextSupplierName.setOnTouchListener(mTouchListener);
         mEditTextSupplierEmail.setOnTouchListener(mTouchListener);
         mImageProduct.setOnTouchListener(mTouchListener);
+    }
 
+    /**
+     * Receiving activity result method will be called after closing the camera
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // if the result is capturing Image
+        if (requestCode == REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                Bundle extras = data.getExtras();
+                Bitmap imageBitmap = (Bitmap) extras.get("data");
+                mImageProduct.setImageBitmap(imageBitmap);
+            } else if (resultCode == RESULT_CANCELED) {
+                // user cancelled Image capture
+                Toast.makeText(getApplicationContext(),
+                        "User cancelled image capture", Toast.LENGTH_SHORT)
+                        .show();
+            } else {
+                // failed to capture image
+                Toast.makeText(getApplicationContext(),
+                        "Sorry! Failed to capture image", Toast.LENGTH_SHORT)
+                        .show();
+            }
+        }
+    }
+    private Bitmap getBitmapFromUri(Uri uri) {
+        ParcelFileDescriptor parcelFileDescriptor = null;
+        try {
+            parcelFileDescriptor =
+                    getContentResolver().openFileDescriptor(uri, "r");
+            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+            Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+            parcelFileDescriptor.close();
+            return image;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to load image.", e);
+            return null;
+        } finally {
+            try {
+                if (parcelFileDescriptor != null) {
+                    parcelFileDescriptor.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "Error closing ParcelFile Descriptor");
+            }
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = JPEG_FILE_PREFIX + timeStamp + "_";
+        File albumF = getAlbumDir();
+        File imageF = File.createTempFile(imageFileName, JPEG_FILE_SUFFIX, albumF);
+        return imageF;
+    }
+
+    private File getAlbumDir() {
+        File storageDir = null;
+
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+
+            storageDir = new File(Environment.getExternalStorageDirectory()
+                    + CAMERA_DIR
+                    + getString(R.string.app_name));
+
+            Log.d(LOG_TAG, "Dir: " + storageDir);
+
+            if (storageDir != null) {
+                if (!storageDir.mkdirs()) {
+                    if (!storageDir.exists()) {
+                        Log.d(LOG_TAG, "failed to create directory");
+                        return null;
+                    }
+                }
+            }
+
+        } else {
+            Log.v(getString(R.string.app_name), "External storage is not mounted READ/WRITE.");
+        }
+
+        return storageDir;
     }
 
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
-            Bitmap photo = (Bitmap) data.getExtras().get("data");
-            mImageProduct.setImageBitmap(photo);
-        }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu options from the res/menu/menu_editor.xml file.
+        // This adds menu items to the app bar.
+        getMenuInflater().inflate(R.menu.menu_editor, menu);
+        return true;
     }
 
 
     /**
      * Method to add a new product to database
      */
-    private boolean saveProduct() {
-        //Read input fields
-        Drawable imageImage = mImageProduct.getDrawable();
-        //Convert to bitmap
-        BitmapDrawable bitmapDrawable = ((BitmapDrawable) imageImage);
-        Bitmap bitmap = bitmapDrawable.getBitmap();
-        //Convert to byte to store
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos);
-        byte[] imageByte = bos.toByteArray();
-
+    private void saveProduct() {
         String nameString = mEditTextProductName.getText().toString().trim();
         String priceString = mEditTextProductPrice.getText().toString().trim();
         String quantityString = mEditQuantityView.getText().toString().trim();
         String suppliernameString = mEditTextSupplierName.getText().toString().trim();
         String supplierEmailString = mEditTextSupplierEmail.getText().toString().trim();
-
-
-        // Check if this is supposed to be a new product
-        // and check if all the fields in the editor are blank
-        if (mCurrentProductUri == null &&
-                TextUtils.isEmpty(nameString) && TextUtils.isEmpty(priceString) &&
-                TextUtils.isEmpty(quantityString) && TextUtils.isEmpty(suppliernameString) &&
-                TextUtils.isEmpty(supplierEmailString)) {
-            //Since nothing was edited no need to do anything
-            return true;
-        }
-
+        String imageString = mImageProduct.toString().trim();
 
         // Create a ContentValues object where column names are the keys,
         // and product attributes from the editor are the values.
         ContentValues values = new ContentValues();
-        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_IMAGE, imageByte);
+        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_NAME, nameString);
+        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_PRICE, priceString);
+        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_QUANTITY, quantityString);
+        values.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_NAME, suppliernameString);
+        values.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL, supplierEmailString);
+        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_IMAGE, mImageUri.toString() );
 
-        //if there is no price
-        int price = 0;
-        if (!TextUtils.isEmpty(priceString)) {
-            price = Integer.parseInt(priceString);
+        bitmap = getBitmapFromUri(mImageUri);
+        mImageProduct.setImageBitmap(bitmap);
+
+        // Check if this is supposed to be a new product
+        // and check if all the fields in the editor are blank
+        if (mCurrentProductUri == null &&
+                TextUtils.isEmpty(nameString) || TextUtils.isEmpty(priceString) ||
+                TextUtils.isEmpty(quantityString) || TextUtils.isEmpty(suppliernameString) ||
+                TextUtils.isEmpty(supplierEmailString) || TextUtils.isEmpty(imageString)) {
+
+            Toast.makeText(this, "Please, insert all required information.",
+                    Toast.LENGTH_SHORT).show();
+
+
+            //Since nothing was edited no need to do anything
+            return;
         }
-        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_PRICE, price);
 
-
-        //if there's no name
-        String name = "no name";
-        if (!TextUtils.isEmpty(nameString)) {
-            name = nameString;
-        }
-        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_NAME, name);
-
-        //if there is no quantity
-        int quantity = 0;
-        if (!TextUtils.isEmpty(quantityString)) {
-            quantity = Integer.parseInt(quantityString);
-        }
-        values.put(ProductContract.ProductEntry.COLUMN_PRODUCT_QUANTITY, quantity);
-
-        //if there's no supplier name
-        String suppliername = "no supplier name";
-        if (!TextUtils.isEmpty(suppliernameString)) {
-            suppliername = suppliernameString;
-        }
-        values.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_NAME, suppliername);
-
-
-        //if there's no supplier email
-        String supplieremail = "no supplier email";
-        if (!TextUtils.isEmpty(supplierEmailString)) {
-            supplieremail = supplierEmailString;
-        }
-        values.put(ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL, supplieremail);
 
         // Determine if this is a new or existing product by checking if mCurrentProductUri is null or not
         if (mCurrentProductUri == null) {
@@ -300,16 +411,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                         Toast.LENGTH_SHORT).show();
             }
         }
-        return true;
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu options from the res/menu/menu_editor.xml file.
-        // This adds menu items to the app bar.
-        getMenuInflater().inflate(R.menu.menu_editor, menu);
-        return true;
+        Log.v("EditorActivity", "id - " + mImageProduct);
     }
 
     /**
@@ -443,7 +545,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             int quantity = cursor.getInt(quantityColumnIndex);
             String suppliername = cursor.getString(suppliernameColumnIndex);
             String supplieremail = cursor.getString(supplieremailColumnIndex);
-            byte[] image = cursor.getBlob(imageColumnIndex);
+            String image = cursor.getString(imageColumnIndex);
 
 
             // Update the views on the screen with the values from the database
@@ -452,7 +554,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             mEditQuantityView.setText(String.valueOf(quantity));
             mEditTextSupplierName.setText(suppliername);
             mEditTextSupplierEmail.setText(supplieremail);
-            BitmapFactory.decodeByteArray(image, 0, image.length);
+            bitmap = getBitmapFromUri(mImageUri);
+            mImageProduct.setImageBitmap(bitmap);
 
 
         }
@@ -463,7 +566,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         // If the loader is invalidated, clear out all the data from the input fields.
         mEditTextProductName.setText("");
         mEditTextProductPrice.setText("");
-        mEditQuantityView.setText("");
+        mEditQuantityView.setText("0");
         mEditTextSupplierName.setText("");
         mEditTextSupplierEmail.setText("");
     }
@@ -552,6 +655,64 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         // Close the activity
         finish();
     }
+    public void requestPermissions() {
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                    ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        MY_PERMISSIONS_REQUEST);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        } else {
+            btnCaptureImage.setEnabled(true);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                        && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                    btnCaptureImage.setEnabled(true);
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
     private void hideOrderButton() {
         Button OrderButton = (Button) findViewById(R.id.button_order_more);
         OrderButton.setVisibility(OrderButton.GONE);

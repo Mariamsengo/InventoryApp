@@ -21,7 +21,7 @@ import android.widget.Toast;
 import com.example.android.inventoryapp.data.ProductContract;
 
 
-public class CatalogActivity extends AppCompatActivity implements  LoaderManager.LoaderCallbacks<Cursor> {
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     public static final String LOG_TAG = CatalogActivity.class.getName();
 
@@ -125,7 +125,7 @@ public class CatalogActivity extends AppCompatActivity implements  LoaderManager
                 ProductContract.ProductEntry.COLUMN_PRODUCT_QUANTITY,
                 ProductContract.ProductEntry.COLUMN_SUPPLIER_NAME,
                 ProductContract.ProductEntry.COLUMN_SUPPLIER_EMAIL,
-                ProductContract.ProductEntry.COLUMN_PRODUCT_IMAGE };
+                ProductContract.ProductEntry.COLUMN_PRODUCT_IMAGE};
 
         // This loader will execute the ContentProvider's query method on a background thread
         return new CursorLoader(this,   // Parent activity context

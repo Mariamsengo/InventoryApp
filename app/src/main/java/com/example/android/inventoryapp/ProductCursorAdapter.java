@@ -26,7 +26,7 @@ import com.example.android.inventoryapp.data.ProductContract;
  */
 public class ProductCursorAdapter extends CursorAdapter {
 
-     /**
+    /**
      * Constructs a new {@link ProductCursorAdapter}.
      *
      * @param context The context
@@ -65,8 +65,8 @@ public class ProductCursorAdapter extends CursorAdapter {
     public void bindView(View view, final Context context, Cursor cursor) {
         // Find individual views that we want to modify in the list item layout
         TextView nameTextView = (TextView) view.findViewById(R.id.text_view_name);
-        TextView priceTextView = (TextView) view.findViewById(R.id.text_view_name);
-        TextView quantityTextView = (TextView) view.findViewById(R.id.text_view_name);
+        TextView priceTextView = (TextView) view.findViewById(R.id.text_view_price);
+        TextView quantityTextView = (TextView) view.findViewById(R.id.text_view_quantity);
 
         // Find the columns of product attributes that we're interested in
         int idColumnIndex = cursor.getColumnIndex(ProductContract.ProductEntry._ID);
@@ -109,4 +109,5 @@ public class ProductCursorAdapter extends CursorAdapter {
                 }
             }
         });
-    }}
+    }
+}
